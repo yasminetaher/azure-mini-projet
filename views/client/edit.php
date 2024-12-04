@@ -6,7 +6,11 @@ $username = "yasmine";
 $password = "azerty123@";
 $conn = new PDO("sqlsrv:server=$host;Database=$db_name;Encrypt=true;TrustServerCertificate=false", $username, $password);
 
+// Vérifier si l'ID est passé dans l'URL
 $id = $_GET['id'] ?? null;
+$client = null;
+
+// Récupérer les détails du client si l'ID est fourni
 if ($id) {
     $query = "SELECT * FROM client WHERE ID_client = ?";
     $stmt = $conn->prepare($query);
@@ -14,21 +18,34 @@ if ($id) {
     $client = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+// Si le formulaire est soumis
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nom = $_POST['nom'];
     $prenom = $_POST['prenom'];
     $age = $_POST['age'];
     $ID_region = $_POST['ID_region'];
+
+    // Mettre à jour les informations du client
     $query = "UPDATE client SET nom = ?, prenom = ?, age = ?, ID_region = ? WHERE ID_client = ?";
     $stmt = $conn->prepare($query);
-    if ($stmt->execute([$nom, $prenom, $age, $ID_region, $_POST['id']])) {
+    $stmt->execute([$nom, $prenom, $age, $ID_region, $_POST['id']]);
+
+    // Si la mise à jour réussit, rediriger vers la liste des clients
+    if ($stmt) {
         header('Location: list.php');
         exit();
     } else {
-        echo "Error updating client.";
+        echo "Erreur lors de la mise à jour du client.";
     }
 }
+
+// Récupérer les régions pour le sélecteur
+$regionsQuery = "SELECT ID_region, libelle FROM region";
+$regionsStmt = $conn->prepare($regionsQuery);
+$regionsStmt->execute();
+$regions = $regionsStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -36,9 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modifier un client</title>
     <style>
-        /* Style pour centrer le formulaire */
         body {
-            background-color: #e0f7fa; /* Fond bleu clair */
+            background-color: #e0f7fa;
             font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
@@ -46,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             height: 100vh;
             margin: 0;
         }
-
         form {
             background-color: white;
             padding: 30px;
@@ -54,17 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             width: 300px;
         }
-
         h1 {
             text-align: center;
-            color: #00796b; /* Couleur du titre */
+            color: #00796b;
         }
-
         label {
             display: block;
             margin: 10px 0 5px;
         }
-
         input, select {
             width: 100%;
             padding: 8px;
@@ -72,7 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 5px;
             border: 1px solid #00796b;
         }
-
         button {
             width: 100%;
             padding: 10px;
@@ -83,11 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 16px;
             cursor: pointer;
         }
-
         button:hover {
             background-color: #004d40;
         }
-
         .back-link {
             display: block;
             margin-top: 20px;
@@ -96,7 +105,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 16px;
             text-decoration: none;
         }
-
         .back-link:hover {
             text-decoration: underline;
         }
@@ -116,25 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="number" name="age" value="<?= htmlspecialchars($client['age']) ?>" required><br>
                 <label>Région:</label>
                 <select id="ID_region" name="ID_region" required>
-                    <?php
-                    // Re-establish the database connection to fetch regions
-                    $conn = mysqli_connect($host, $username, $password, $db_name);
-                    if ($conn) {
-                        $regionsQuery = "SELECT ID_region, libelle FROM region";
-                        $regionsResult = mysqli_query($conn, $regionsQuery);
-
-                        // Populate the dropdown with regions
-                        while ($region = mysqli_fetch_assoc($regionsResult)) {
-                            $selected = ($region['ID_region'] == $client['ID_region']) ? 'selected' : '';
-                            echo "<option value=\"{$region['ID_region']}\" $selected>{$region['libelle']}</option>";
-                        }
-
-                        // Close the connection
-                        mysqli_close($conn);
-                    } else {
-                        echo "<option value=\"\">Erreur lors du chargement des régions</option>";
-                    }
-                    ?>
+                    <?php foreach ($regions as $region): ?>
+                        <option value="<?= $region['ID_region'] ?>" <?= ($region['ID_region'] == $client['ID_region']) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($region['libelle']) ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select><br>
                 <button type="submit">Mettre à jour</button>
             </form>
