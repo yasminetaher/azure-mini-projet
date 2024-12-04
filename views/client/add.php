@@ -1,11 +1,11 @@
 <?php
 
-$host = "tcp:mini-projet-serveur.database.windows.net,1433";
-$db_name = "societé";
-$username = "yasmine";
-$password = "azerty123@";
+$host = "tcp:mini-projet-serveur.database.windows.net,1433"; // Serveur Azure
+$db_name = "societé"; // Nom de la base de données
+$username = "yasmine"; // Votre nom d'utilisateur
+$password = "azerty123@"; // Votre mot de passe
 
-
+// Connexion PDO à Azure SQL
 try {
     $conn = new PDO(
         "sqlsrv:server=" . $host . ";Database=" . $db_name . ";Encrypt=true;TrustServerCertificate=false",
@@ -14,23 +14,23 @@ try {
     );
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $exception) {
-    echo "Connection error: " . $exception->getMessage();
+    echo "Erreur de connexion: " . $exception->getMessage();
     die();
 }
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+    // Récupération des données du formulaire
     $nom = $_POST['nom'];
     $prenom = $_POST['prenom'];
     $age = $_POST['age'];
     $ID_region = $_POST['ID_region'];
 
-    
+    // Requête d'insertion des données dans la base
     $query = "INSERT INTO client (nom, prenom, age, ID_region) VALUES (:nom, :prenom, :age, :ID_region)";
     $stmt = $conn->prepare($query);
 
     try {
+        // Exécution de la requête
         $stmt->execute([
             ':nom' => $nom,
             ':prenom' => $prenom,
@@ -38,10 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':ID_region' => $ID_region
         ]);
         
+        // Redirection vers la page de liste des clients
         header('Location: list.php');
         exit();
     } catch (PDOException $e) {
-        echo "Error adding client: " . $e->getMessage();
+        echo "Erreur lors de l'ajout du client: " . $e->getMessage();
     }
 }
 ?>
@@ -54,9 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Ajouter un client</title>
     <link rel="stylesheet" href="../../public/styles/index.css">
     <style>
-        /* Style pour centrer le formulaire */
         body {
-            background-color: #e0f7fa; /* Fond bleu clair */
+            background-color: #e0f7fa;
             font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
@@ -64,7 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             height: 100vh;
             margin: 0;
         }
-
         form {
             background-color: white;
             padding: 30px;
@@ -72,17 +71,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             width: 300px;
         }
-
         h1 {
             text-align: center;
-            color: #00796b; /* Couleur du titre */
+            color: #00796b;
         }
-
         label {
             display: block;
             margin: 10px 0 5px;
         }
-
         input, select {
             width: 100%;
             padding: 8px;
@@ -90,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 5px;
             border: 1px solid #00796b;
         }
-
         button {
             width: 100%;
             padding: 10px;
@@ -101,11 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 16px;
             cursor: pointer;
         }
-
         button:hover {
             background-color: #004d40;
         }
-
         .back-link {
             display: block;
             margin-top: 20px;
@@ -114,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 16px;
             text-decoration: none;
         }
-
         .back-link:hover {
             text-decoration: underline;
         }
@@ -140,20 +132,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="ID_region">Région:</label>
                 <select id="ID_region" name="ID_region" required>
                     <?php
-                    // Re-establish the database connection to fetch regions
-                    $conn = mysqli_connect($host, $username, $password, $db_name);
-                    if ($conn) {
+                    // Récupération des régions depuis la base de données
+                    try {
                         $regionsQuery = "SELECT ID_region, libelle FROM region";
-                        $regionsResult = mysqli_query($conn, $regionsQuery);
+                        $regionsResult = $conn->query($regionsQuery);
 
-                        // Populate the dropdown with regions
-                        while ($region = mysqli_fetch_assoc($regionsResult)) {
+                        // Remplissage de la liste déroulante avec les régions
+                        while ($region = $regionsResult->fetch(PDO::FETCH_ASSOC)) {
                             echo "<option value=\"{$region['ID_region']}\">{$region['libelle']}</option>";
                         }
-
-                        // Close the connection
-                        mysqli_close($conn);
-                    } else {
+                    } catch (PDOException $e) {
                         echo "<option value=\"\">Erreur lors du chargement des régions</option>";
                     }
                     ?>
